@@ -1,7 +1,7 @@
 ---
 title: "Statistical assignment 4"
-author: "[add your name here]"
-date: "[add date here]"
+author: "Emily Sullivan"
+date: "02/03/2020"
 output: github_document
 ---
 
@@ -22,10 +22,10 @@ First we will need to open and recode the data. I supply the code for this; you 
 
     ```{r}
 library(tidyverse)
-Data8 <- read_tsv("...h_indresp.tab")
+Data8 <- read_tsv("/Users/emilysullivan/Lab sessions/UKDA-6614-tab/tab/ukhls_w8/h_indresp.tab")
 Data8 <- Data8 %>%
         select(pidp, h_age_dv, h_payn_dv, h_gor_dv)
-Stable <- read_tsv("...xwavedat.tab")
+Stable <- read_tsv("/Users/emilysullivan/Lab sessions/UKDA-6614-tab/tab/ukhls_wx/xwavedat.tab")
 Stable <- Stable %>%
         select(pidp, sex_dv, ukborn, plbornc)
 Data <- Data8 %>% left_join(Stable, "pidp")
@@ -67,25 +67,122 @@ Reproduce the following graphs as close as you can. For each graph, write two se
 1. Univariate distribution (20 points).
 
     ```{r}
+ggplot(Data,
+       aes(x = h_payn_dv)) +
+  geom_histogram(binwidth = 1000) +
+  xlim(-100, 5000)
+
+ggplot(Data,
+       aes(x = h_payn_dv)) +
+  geom_histogram(binwidth = 1) +
+  xlim(-100, 5000)
+
+ggplot(Data,
+       aes(x = h_payn_dv)) +
+  geom_histogram(binwidth = 100) +
+  xlim(-100, 5000) +
+  xlab("Net pay per month in current job")
+              
+ggplot(Data,
+       aes(x = h_payn_dv)) +
+  geom_density() +
+  xlim(-100, 5000)
+
+ggplot(Data,
+       aes(y = h_payn_dv)) +
+  geom_boxplot() +
+  ylim(-100,5000)
+
+summary(Data$h_payn_dv)
     ```
+
+Histogram 1
+Through this univariate distribution histogram, we can see how frequently each value occurs in our chosen variable h_payn_dv. The net pay per month in current job is most frequent between 500 and 1500. 
+
+Histogram 2
+The most frequent net pay per month in current job is 1250 and under in the h_payn_dv variable. 
+
+Histogram 3
+This plot shows us that the net pay per month in current job is less than 0. It occurs more frequently than net pay per month that is over 4000. 
+
+Density Plot
+There is a steep and rapid incline between the values 0 and 1250, earnings past 1250 experience a gradual decline with minimal spikes before levelling out, almost parallel to the x-axis past 4000. This means that the higher the net monthly income in current job, the harder it is to earn a higher monthly net income, but also that the more someone earns, the more they spend. 
+
+Boxplot
+There is a large density of anomalies between 3000 and 5000. This large density of anomalies/ outliers tells us that these data points don't fall within the interquartile range and are above average net earnings. 
 
 2. Line chart (20 points). The lines show the non-parametric association between age and monthly earnings for men and women.
 
     ```{r}
+  byAge <- Data %>%
+  group_by(h_age_dv) %>%
+  summarise(
+    medianIncome = median(h_payn_dv, na.rm = TRUE)
+  )
+byAge %>%
+        ggplot(aes(x = h_age_dv, y = medianIncome)) +
+        geom_line() +
+        geom_smooth() +
+        xlim(21,80) +
+        xlab("Age") +
+        ylab("Median income")
+# Split by sex
+byAgeSex <- Data %>%
+  filter(!is.na(sex_dv)) %>%
+  group_by(h_age_dv, sex_dv) %>%
+  summarise(
+    medianIncome = median(h_payn_dv, na.rm = TRUE)
+  )
+byAgeSex %>%
+        ggplot(aes(x = h_age_dv, y = medianIncome, colour = sex_dv)) +
+        geom_line() +
+        geom_smooth() +
+        xlim(21,80) +
+        ylim(0,2250) +
+        xlab("Age") +
+        ylab("Median income")
     ```
 
-3. Faceted bar chart (20 points).
+Linechart 1 
+There are spikes just before age 40 meaning that net income peaks just before age 40. The spikes between age 60 and 80 would be due to retirement and pension income, and the older the person, the more income they spend on healthcare, insurances and other things as their pension begins to deplete. 
+
+Linechart 2 
+Female and male median net income experiences a large difference as it progresses along the x-axis. During the working life, there is a gender pay gap, however the dataset that we are looking at has not taken into consideration the occupation of the person. 
+
+3. Faceted bar chart (20 points)
 
     ```{r}
+Data %>%
+  ggplot(aes(x = h_payn_dv)) +
+  geom_histogram(bins = 50) +
+  geom_vline(xintercept = 1557, colour = "red") +
+  xlab("Monthly Income") +
+  ylab("count") +
+  facet_wrap(~ sex_dv)
     ```
+
+It shows that females are more likely to have a net monthly income below the median net monthly income. There is a spike in the female bar chart that is only a fraction of the size of the spike in the male bar chart above 5000, meaning that a fraction of females from the dataset make as much net monthly income as their male counterparts. 
 
 4. Heat map (20 points).
 
     ```{r}
+library(ggplot2)
     
+ggplot(Data, aes(x = sex_dv, y = h_age_dv, fill = h_payn_dv)) + 
+  geom_tile()
     ```
+
+This heatmap is not very dense. There are a lot of anomalies that don't fall on the colour scale for h_payn_dv. 
 
 5. Population pyramid (20 points).
 
     ```{r}
+popPyramid <- ggplot(Data, aes(x = h_age_dv, y = pidp , fill = sex_dv)) + 
+  geom_bar(data = subset(Data, sex_dv == "Female"), stat = "identity") + 
+  geom_bar(data = subset(Data, sex_dv == "Male"), stat = "identity") + 
+  scale_y_continuous(labels = paste0(as.character(c(seq(2, 0, -1), seq(1, 2, 1))), "m"), limits = (80)) + 
+  coord_flip()
+
+popPyramid
+
     ```
